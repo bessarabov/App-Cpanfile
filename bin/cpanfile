@@ -1,0 +1,64 @@
+#!/usr/bin/perl
+
+=encoding UTF-8
+=cut
+
+=head1 DESCRIPTION
+
+=cut
+
+# common modules
+use strict;
+use warnings FATAL => 'all';
+use feature 'say';
+use utf8;
+use open qw(:std :utf8);
+
+use HTTP::Tiny;
+use JSON::PP;
+use Path::Tiny;
+
+sub get_latest_version {
+    my ($lib) = @_;
+
+    $lib =~ s/::/-/g;
+
+    my $response = HTTP::Tiny->new()->get('https://fastapi.metacpan.org/v1/release/' . $lib);
+    my $parsed = decode_json $response->{content};
+
+    return $parsed->{version};
+}
+
+# main
+sub main {
+    my $command = shift(@ARGV) // '';
+
+    if ($command eq 'add') {
+        my @libs = @ARGV;
+        die "You need to specify libs" if @libs == 0;
+
+        my %lib2version;
+        foreach my $lib (@libs) {
+            $lib2version{$lib} = get_latest_version($lib);
+        }
+
+        my @lines = path('cpanfile')->lines({chomp => 1});
+        foreach my $lib (@libs) {
+            push(
+                @lines,
+                sprintf(
+                    "requires '%s', '== %s';",
+                    $lib,
+                    $lib2version{$lib},
+                ),
+            );
+        }
+
+        path('cpanfile')->spew(join("\n", sort @lines) . "\n");
+    } else {
+        die "Command '$command' is not supported."
+    }
+
+}
+main();
+__END__
