@@ -17,6 +17,7 @@ use open qw(:std :utf8);
 use HTTP::Tiny;
 use JSON::PP;
 use Path::Tiny;
+use Term::ANSIColor qw(colored);
 
 sub get_latest_version {
     my ($lib) = @_;
@@ -55,6 +56,25 @@ sub main {
         }
 
         path('cpanfile')->spew(join("\n", sort @lines) . "\n");
+    } elsif ($command eq 'info') {
+        my @lines = path('cpanfile')->lines({chomp => 1});
+        foreach my $line (@lines) {
+            if ($line =~ /^requires '(.*)', '== (.*)';\z/) {
+
+                my $latest_version = get_latest_version($1);
+
+                my $addition = '';
+                if ($latest_version ne $2) {
+                    $addition = ' ' . colored("(Latest version: $latest_version)", 'red');
+                }
+
+                say "$1 $2$addition";
+
+
+            } else {
+                say colored("Unsupported line: ", 'red') . $line;
+            }
+        }
     } else {
         die "Command '$command' is not supported."
     }
