@@ -75,6 +75,24 @@ sub main {
                 say colored("Unsupported line: ", 'red') . $line;
             }
         }
+
+    } elsif ($command eq 'show') {
+        my @first_level_releases;
+        foreach my $line (path('cpanfile')->lines({chomp => 1})) {
+        warn $line;
+            if ($line =~ /^requires '(.*)', '== (.*)';\z/) {
+
+                my $name = $1;
+                my $version = $2;
+
+                $name =~ s/::/-/g;
+
+                push @first_level_releases, "$name-$version";
+            }
+        }
+
+        use Data::Dumper;
+        warn Dumper \@first_level_releases;
     } else {
         die "Command '$command' is not supported."
     }
